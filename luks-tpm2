@@ -362,13 +362,6 @@ parse_args() {
         fi
         LUKS_KEYFILE_PATH="$OPTARG"
         ;;
-      f)
-        if [ ! -f "$OPTARG" ]; then
-          echo "Keyfile does not exist: $OPTARG" >&2
-          exit 1
-        fi
-        LUKS_KEYFILE_PATH="$OPTARG"
-        ;;
       t)
         if [[ ! $OPTARG =~ ^-?[0-9]+$ ]] || [ $OPTARG -lt 0 ] || [ $OPTARG -gt 7 ]; then
           echo "Invalid TPM key slot: $OPTARG" >&2
