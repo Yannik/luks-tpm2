@@ -96,7 +96,7 @@ init_tpm_key() {
     echo "Adding new key to slot $TPM_KEY_SLOT..."
     echo $PASSPHRASE | cryptsetup luksAddKey $ARGS $ROOT_DEVICE "$KEYFILE" --new-key-slot $TPM_KEY_SLOT
     addkey=$?
-    if [ $addkey -ne 0 ] || [ $seal -ne 0 ]; then
+    if [ $addkey -ne 0 ]; then
       echo "There was an error initializing the TPM key in slot $TPM_KEY_SLOT!" >&2
       RETURN_CODE=8
       return
