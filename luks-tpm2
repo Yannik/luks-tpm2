@@ -437,10 +437,10 @@ parse_args() {
 
 # Set addtional global and environment variables
 init_globals() {
-  if [ -z $ROOT_DEVICE ]; then
-    ROOT_DEVICE="$(find_luks_device)"
+  if [ -z $ROOT_DEVICES ]; then
+    ROOT_DEVICES="$(find_luks_device)"
   fi
-  if [ -z $ROOT_DEVICE ]; then
+  if [ -z $ROOT_DEVICES ]; then
     echo "LUKS device not found!" >&2
     usage >&2
     exit 1
