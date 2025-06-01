@@ -67,40 +67,47 @@ EOF
 
 # Create an initial LUKS key in TPM_KEY_SLOT sealed by the TPM
 init_tpm_key() {
-  echo "Initializing LUKS TPM key for $ROOT_DEVICE"
-  echo "WARNING: This will permanently delete the key in slot $TPM_KEY_SLOT!"
-  if ! in_quiet_mode; then
-    read -p "Do you wish to proceed? [y/N] " choice
-    if [ "$choice" != "y" ] && [ "$choice" != "Y" ]; then
-      echo "Canceled."
-      RETURN_CODE=0
-      return
-    fi
-  fi
-
-  ARGS=""
-  if [ -n "$LUKS_KEYFILE_PATH" ]; then
-    ARGS="--key-file $LUKS_KEYFILE_PATH"
-  else
-    read -r -s -p "Enter any existing LUKS passphrase: " PASSPHRASE
-    echo
-  fi
-
   echo "Generating new LUKS key..."
   generate_keyfile
 
-  echo "Removing existing key from slot $TPM_KEY_SLOT..."
-  echo $PASSPHRASE | cryptsetup luksKillSlot $ARGS $ROOT_DEVICE $TPM_KEY_SLOT
+  IFS="," for ROOT_DEVICE in $ROOT_DEVICES; do
+    echo "Initializing LUKS TPM key for $ROOT_DEVICE"
+    echo "WARNING: This will permanently delete the key in slot $TPM_KEY_SLOT!"
+    if ! in_quiet_mode; then
+      read -p "Do you wish to proceed? [y/N] " choice
+      if [ "$choice" != "y" ] && [ "$choice" != "Y" ]; then
+        echo "Canceled."
+        RETURN_CODE=0
+        return
+      fi
+    fi
 
-  echo "Adding new key to slot $TPM_KEY_SLOT..."
-  echo $PASSPHRASE | cryptsetup luksAddKey $ARGS $ROOT_DEVICE "$KEYFILE" --new-key-slot $TPM_KEY_SLOT
-  addkey=$?
+    ARGS=""
+    if [ -n "$LUKS_KEYFILE_PATH" ]; then
+      ARGS="--key-file $LUKS_KEYFILE_PATH"
+    else
+      read -r -s -p "Enter any existing LUKS passphrase: " PASSPHRASE
+      echo
+    fi
+
+    echo "Removing existing key from slot $TPM_KEY_SLOT..."
+    echo $PASSPHRASE | cryptsetup luksKillSlot $ARGS $ROOT_DEVICE $TPM_KEY_SLOT
+
+    echo "Adding new key to slot $TPM_KEY_SLOT..."
+    echo $PASSPHRASE | cryptsetup luksAddKey $ARGS $ROOT_DEVICE "$KEYFILE" --new-key-slot $TPM_KEY_SLOT
+    addkey=$?
+    if [ $addkey -ne 0 ] || [ $seal -ne 0 ]; then
+      echo "There was an error initializing the TPM key in slot $TPM_KEY_SLOT!" >&2
+      RETURN_CODE=8
+      return
+    fi
+  done
 
   seal_key
   seal=$?
 
-  if [ $addkey -ne 0 ] || [ $seal -ne 0 ]; then
-    echo "There was an error initializing the TPM key in slot $TPM_KEY_SLOT!" >&2
+  if [ $seal -ne 0 ]; then
+    echo "There was an error sealing the key to tpm!" >&2
     RETURN_CODE=8
   fi
 }
@@ -418,7 +425,7 @@ parse_args() {
   shift $((OPTIND-1))
 
   if [ -n "$2" ]; then
-    ROOT_DEVICE="$1"
+    ROOT_DEVICES="$1"
     ACTION="$2"
   elif [ -n "$1" ]; then
     ACTION="$1"
