@@ -164,16 +164,20 @@ replace_tpm_key() {
 
   generate_keyfile
 
-  echo "Replacing LUKS key in slot $TPM_KEY_SLOT on $ROOT_DEVICE..."
-  if cryptsetup luksChangeKey $ROOT_DEVICE "$KEYFILE" --key-slot $TPM_KEY_SLOT --key-file "$original_keyfile"; then
-    if ! seal_key; then
-      echo "There was an error sealing the new keyfile!" >&2
-      RETURN_CODE=7
+  IFS="," for ROOT_DEVICE in $ROOT_DEVICES; do
+    echo "Replacing LUKS key in slot $TPM_KEY_SLOT on $ROOT_DEVICE..."
+    if cryptsetup luksChangeKey $ROOT_DEVICE "$KEYFILE" --key-slot $TPM_KEY_SLOT --key-file "$original_keyfile"; then
+      if ! seal_key; then
+        echo "There was an error sealing the new keyfile!" >&2
+        RETURN_CODE=7
+        return
+      fi
+    else
+      echo "There was an error replacing the TPM key in slot $TPM_KEY_SLOT!" >&2
+      RETURN_CODE=6
+      return
     fi
-  else
-    echo "There was an error replacing the TPM key in slot $TPM_KEY_SLOT!" >&2
-    RETURN_CODE=6
-  fi
+  done
 }
 
 # Pre-compute PCR values and replace tpm key
