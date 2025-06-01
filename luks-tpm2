@@ -70,7 +70,7 @@ init_tpm_key() {
   echo "Generating new LUKS key..."
   generate_keyfile
 
-  IFS="," for ROOT_DEVICE in $ROOT_DEVICES; do
+  for ROOT_DEVICE in ${ROOT_DEVICES//,/ }; do
     echo "Initializing LUKS TPM key for $ROOT_DEVICE"
     echo "WARNING: This will permanently delete the key in slot $TPM_KEY_SLOT!"
     if ! in_quiet_mode; then
@@ -164,7 +164,7 @@ replace_tpm_key() {
 
   generate_keyfile
 
-  IFS="," for ROOT_DEVICE in $ROOT_DEVICES; do
+  for ROOT_DEVICE in ${ROOT_DEVICES//,/ }; do
     echo "Replacing LUKS key in slot $TPM_KEY_SLOT on $ROOT_DEVICE..."
     if cryptsetup luksChangeKey $ROOT_DEVICE "$KEYFILE" --key-slot $TPM_KEY_SLOT --key-file "$original_keyfile"; then
       if ! seal_key; then
